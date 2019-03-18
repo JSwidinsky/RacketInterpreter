@@ -4,7 +4,7 @@
   (if (not (pair? prog))
       prog
       (if (empty? (cdr prog))
-          (car prog)
+          prog   ;this used to be (cdr prog); can I remember why? (changed it so that car would work with input `(6))
           (if (equal? (car prog) `quote)
               (quote (cdr prog))
               (if (arithmaticExpr? (car prog))
@@ -15,7 +15,7 @@
                           (listOperation prog)
                           (if (equal? (car prog) `if)
                               (ifEval prog)
-                              0))))))))
+                              prog)))))))) ;should we just return the prog if all of the above cases fail?
 
 
 ;function that evaluates a given arithmatic expression, depending on what the car of the parameter Expr is (i.e. +, -, *, or /)
@@ -43,10 +43,10 @@
 ;this might not work yet...
 (define (listOperation Expr)
   (case (car Expr)
-    (`car (car (cdr Expr)))
-    (`cdr (cdr (cdr Expr)))
-    (`cons (cons (car (cdr Expr)) (car (cdr (cdr Expr)))))
-    (`pair? (pair? Expr))
+    (`car (car (startEval (car (cdr Expr)))))
+    (`cdr (cdr (startEval (car (cdr Expr)))))
+    (`cons (cons (startEval (car (cdr Expr))) (startEval (car (cdr (cdr Expr))))))
+    (`pair? (pair? (car (cdr Expr))))
     ))
 
 ;function that evaluates an if expression, and depending on the result of its conditional branches to the appropriate part of the list
@@ -68,9 +68,5 @@
 (define (listOperator? expr)
   (or (or (or (equal? expr `cons) (equal? expr `car)) (equal? expr `cdr)) (equal? expr `pair?)))
 
-(define sampleProg
-  `(if (> 5 6)
-       (+ 3 4)
-       (if (> (- 7 9) (+ 4 3))
-           (< 4 5)
-           (car `(4 5)))))
+(define sampleProg `(cons (car (6)) (cdr (5 8))))
+(define s `(car (6)))
