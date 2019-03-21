@@ -3,19 +3,23 @@
 (define (startEval prog)
   (if (not (pair? prog))
       prog
-      (if (equal? (car prog) `quote)
-          (quote (cdr prog))
-          (if (arithmaticExpr? (car prog))
-              (arithmaticExpr prog)
-              (if (relationalExpr? (car prog))
-                  (relationalExpr prog)
-                  (if (listOperator? (car prog))
-                      (listOperation prog)
-                      (if (equal? (car prog) `if)
-                          (ifEval prog)
-                          0)))))))
+      (if (empty? (cdr prog))
+          prog   ;this used to be (cdr prog); can I remember why? (changed it so that car would work with input `(6))
+          (if (equal? (car prog) `quote)
+              (quote (cdr prog))
+              (if (arithmaticExpr? (car prog))
+                  (arithmaticExpr prog)
+                  (if (relationalExpr? (car prog))
+                      (relationalExpr prog)
+                      (if (listOperator? (car prog))
+                          (listOperation prog)
+                          (if (equal? (car prog) `if)
+                              (ifEval prog)
+                              prog)))))))) ;should we just return the prog if all of the above cases fail?
 
 
+;function that evaluates a given arithmatic expression, depending on what the car of the parameter Expr is (i.e. +, -, *, or /)
+;Expr -- The arithmatic expression to be evaluated
 (define (arithmaticExpr Expr)
   (case (car Expr)
     (`+ (+ (startEval (car (cdr Expr))) (startEval (car (cdr (cdr Expr))))))
@@ -24,6 +28,8 @@
     (`/ (/ (startEval (car (cdr Expr))) (startEval (car (cdr (cdr Expr))))))
     ))
 
+;function that evaluates a given relational expression, and returns true or false depending on its value
+;Expr -- The relational expression to evaluate
 (define (relationalExpr Expr)
   (case (car Expr)
     (`equal? (equal? (car (cdr Expr)) (car (cdr (cdr Expr)))))
@@ -37,22 +43,35 @@
 ;this might not work yet...
 (define (listOperation Expr)
   (case (car Expr)
-    (`car (car (cdr Expr)))
-    (`cdr (cdr (cdr Expr)))
-    (`cons (cons (car (cdr Expr)) (car (cdr (cdr Expr)))))
-    (`pair? (pair? Expr))
+    (`car (car (startEval (car (cdr Expr)))))
+    (`cdr (cdr (startEval (car (cdr Expr)))))
+    (`cons (cons (startEval (car (cdr Expr))) (startEval (car (cdr (cdr Expr))))))
+    (`pair? (pair? (car (cdr Expr))))
     ))
 
+;function that evaluates an if expression, and depending on the result of its conditional branches to the appropriate part of the list
+;Expr -- The expression that we wish to evaluate for the if statement
 (define (ifEval Expr)
   (if (startEval (car (cdr Expr)))
       (startEval (car (cdr (cdr Expr))))
       (startEval (car (cdr (cdr (cdr Expr)))))))
 
+;determines if the parameter expr is one of the four arithmatic operators
 (define (arithmaticExpr? expr)
   (or (or (or (equal? expr `+) (equal? expr `-)) (equal? expr `*)) (equal? expr `/)))
 
+;determines if the paramter expr is one of the six relational operators
 (define (relationalExpr? expr)
   (or (or (or (or (or (equal? expr `=) (equal? expr `<=)) (equal? expr `<)) (equal? expr `>=)) (equal? expr `>)) (equal? expr `equal?)))
 
+;determine if the parameter is one of the four list operators
 (define (listOperator? expr)
   (or (or (or (equal? expr `cons) (equal? expr `car)) (equal? expr `cdr)) (equal? expr `pair?)))
+
+
+;put any sample test programs here
+(define sampleProg `(cons (car (6)) (cdr (5 8))))
+(define s `(car (6)))
+(define st `(if (< 6 (+ 4 1))
+                (equal? (car (4 5)) (cdr (5 4)))
+                (+ (* 6 7) (- (/ 10 5) 1))))

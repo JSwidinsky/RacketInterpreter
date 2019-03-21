@@ -1,6 +1,9 @@
 #lang racket
 
 (define (startEval prog)
+  (startEvalList prog `()))
+
+(define (startEvalList prog environment)
   (if (not (pair? prog))
       prog
       (if (empty? (cdr prog))
@@ -15,7 +18,9 @@
                           (listOperation prog)
                           (if (equal? (car prog) `if)
                               (ifEval prog)
-                              prog)))))))) ;should we just return the prog if all of the above cases fail?
+                              (if (equal? (car (car prog)) `lambda)
+                                  (lambdaEval prog environment)
+                                  prog))))))))) ;should we just return the prog if all of the above cases fail?
 
 
 ;function that evaluates a given arithmatic expression, depending on what the car of the parameter Expr is (i.e. +, -, *, or /)
@@ -56,6 +61,10 @@
       (startEval (car (cdr (cdr Expr))))
       (startEval (car (cdr (cdr (cdr Expr)))))))
 
+;function that evaluates and modifies the current environment for a lambda expression
+(define (lambdaEval expr environment)
+  (print environment))
+
 ;determines if the parameter expr is one of the four arithmatic operators
 (define (arithmaticExpr? expr)
   (or (or (or (equal? expr `+) (equal? expr `-)) (equal? expr `*)) (equal? expr `/)))
@@ -68,5 +77,10 @@
 (define (listOperator? expr)
   (or (or (or (equal? expr `cons) (equal? expr `car)) (equal? expr `cdr)) (equal? expr `pair?)))
 
+
+;put any sample test programs here
 (define sampleProg `(cons (car (6)) (cdr (5 8))))
 (define s `(car (6)))
+(define st `(if (< 6 (+ 4 1))
+                (equal? (car (4 5)) (cdr (5 4)))
+                (+ (* 6 7) (- (/ 10 5) 1))))
