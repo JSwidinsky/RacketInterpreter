@@ -12,13 +12,15 @@
 ;environment -- the current environment at the time of calling this function
 (define (startEvalList prog environment)
   (if (linSearch environment (if (pair? prog) (car prog) prog))
-      (startEvalList (linSearchVal environment (if (pair? prog) (car prog) prog)) environment) ;perform a start eval here in the case where a parameter is defined in terms of another parameter
+      (if (pair? prog)
+          (startEvalList (list (linSearchVal environment (car prog)) (startEvalList (cdr prog) environment)) environment) ;perform a start eval here in the case where a parameter is defined in terms of another parameter
+          (startEvalList (linSearchVal environment prog) environment))
       (if (not (pair? prog))
           prog
-          (if (empty? (cdr prog))
-              prog   ;this used to be (cdr prog); can I remember why? (changed it so that car would work with input `(6))
-              (if (equal? (car prog) `quote)
-                  (car (cdr prog))
+          ;(if (empty? (cdr prog))
+              ;prog   ;this used to be (cdr prog); can I remember why? (changed it so that car would work with input `(6))
+              (if (equal? (car (flatten prog)) `quote)
+                  (car (cdr (flatten prog)))
                   (if (arithmaticExpr? (car prog))
                       (arithmaticExpr prog environment)
                       (if (relationalExpr? (car prog))
@@ -32,7 +34,7 @@
                                       (if (equal? (car (car prog)) `lambda)
                                           (lambdaEval prog environment)
                                           prog)  ;should we just return the prog if all of the above cases fail?
-                                      ))))))))))
+                                      )))))))))
 
 
 ;function that evaluates a given arithmatic expression, depending on what the car of the parameter Expr is (i.e. +, -, *, or /)
@@ -56,7 +58,7 @@
 
 ;function that evaluates a given relational expression, and returns true or false depending on its value
 ;Expr -- The relational expression to evaluate
-;environment -- our current environment
+;environment -- our current environment(list (linSearchVal `((inc (lambda (x) (+ x '1)))) (car '(inc '5))) `(quote 5))
 (define (relationalExpr Expr environment)
   (if (linSearch environment (car Expr))
       (case (linSearchVal environment (car Expr))
@@ -132,8 +134,7 @@
       false
       (if (equal? (car environment) symbol)
           true
-          (if (pair? (car environment)) (or (linSearch (car environment) symbol) (linSearch (cdr environment) symbol)) false)
-              )))
+          (if (pair? (car environment)) (or (linSearch (car environment) symbol) (linSearch (cdr environment) symbol)) false))))
 
 ;function that returns the value attached to a particular symbol in our current environment
 ;this function makes the assumption that the symbol we are looking for exists in our list, so the function linSearch should be called and return true before this one is called
@@ -145,6 +146,8 @@
       (if (linSearch (car environment) symbol)
           (linSearchVal (car environment) symbol)
           (linSearchVal (cdr environment) symbol))))
+
+
 
 
 
@@ -165,11 +168,14 @@
 
 (define ex `(if (< ((lambda (x) (* x x)) 5) ((lambda (x) (* x (* x x))) 4)) (quote 4) (quote 9)))
 
-(define facttest
-  `(letrec ((fact
-             (lambda (x)
-               (if (= x 0) (quote 1)
-                   (* x (fact (- x 1)))))))
-     (fact 10)))
+(define letExpr `(let ((x 3) (y 4)) (let ((x x)) 5)))
 
-(define letExpr `(let ((x 3) (y 4)) (let ((a x)) a)))
+(define howard
+  '(let ((inc
+          (lambda (x) (+ x (quote 1)))))
+     (inc (quote 5))))
+
+
+(trace startEvalList)
+(trace arithmaticExpr)
+(trace modifyEnvironment)
