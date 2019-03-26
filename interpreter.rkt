@@ -15,7 +15,8 @@
       prog
       (if (linSearch environment (if (pair? prog) (car prog) prog))
           (if (pair? prog)
-              (if (not (empty? (cdr prog))) (startEvalList (list (linSearchVal environment (car prog)) (startEvalList (cdr prog) environment)) environment)
+              (if (not (empty? (cdr prog)))
+                  (startEvalList (list (linSearchVal environment (car prog)) (startEvalList (car (cdr prog)) environment)) (linSearchEnvironment environment (car prog))) ;(startEvalList (cdr prog) environment)) environment)
                   (startEvalList (list (linSearchVal environment (car prog))) environment));perform a start eval here in the case where a parameter is defined in terms of another parameter
               (startEvalList (linSearchVal environment prog) environment))
           (if (not (pair? prog))
@@ -40,7 +41,7 @@
                                                   (lambdaEval prog environment)
                                                   prog)  ;should we just return the prog if all of the above cases fail?
                                               ))))))))))))
-  
+
 
 ;function that evaluates a given arithmatic expression, depending on what the car of the parameter Expr is (i.e. +, -, *, or /)
 ;Expr -- The arithmatic expression to be evaluated
@@ -108,7 +109,7 @@
   (startEvalList (car (cdr (cdr (car expr)))) (cons (modifyEnvironment (car (cdr (car expr))) (cdr expr) environment) environment)))
 
 (define (letEval expr environment)
-  (startEvalList (car (cdr (cdr expr))) (cons (car (cdr expr)) environment))) ;(cons (modifyLetEnvironment (car (cdr expr)) environment) environment)))
+  (startEvalList (car (cdr (cdr expr))) (cons (modifyLetEnvironment (car (cdr expr)) environment) environment))) ;(cons (modifyLetEnvironment (car (cdr expr)) environment) environment)))
 
 (define (letrecEval expr environment)
   (startEvalList (car (cdr (cdr expr))) (cons (car (cdr expr)) environment)))
@@ -119,8 +120,13 @@
 ;environment -- current environment that will be modified
 (define (modifyEnvironment params arguments environment)
   (if (= (length params) 1)
-      (list (car params) (startEvalList (if (pair? arguments) (car arguments) arguments) environment))
-      (list (list (car params) (startEvalList (car arguments) environment)) (modifyEnvironment (cdr params) (cdr arguments) environment))))
+      (list (car params) (startEvalList (if (pair? arguments) (car arguments) arguments) environment) environment)
+      (list (list (car params) (startEvalList (car arguments) environment) environment) (modifyEnvironment (cdr params) (cdr arguments) environment) environment)))
+
+(define (modifyLetEnvironment params environment)
+  (if (= (length params) 1)
+      (list (car (car params)) (car (cdr (car params))) environment)
+      (list (list (car (car params)) (car (cdr (car params))) environment) (modifyLetEnvironment (cdr params) environment))))
 
 ;determines if the parameter expr is one of the four arithmatic operators
 (define (arithmaticExpr? expr)
@@ -142,7 +148,7 @@
       false
       (if (equal? (car environment) symbol)
           true
-          (if (pair? (car environment)) (or (linSearch (car environment) symbol) (linSearch (cdr environment) symbol)) false))))
+          (if (pair? (car environment)) (or (linSearch (car environment) symbol)  (linSearch (cdr environment) symbol)) false))))
 
 ;function that returns the value attached to a particular symbol in our current environment
 ;this function makes the assumption that the symbol we are looking for exists in our list, so the function linSearch should be called and return true before this one is called
@@ -154,6 +160,14 @@
       (if (linSearch (car environment) symbol)
           (linSearchVal (car environment) symbol)
           (linSearchVal (cdr environment) symbol))))
+
+
+(define (linSearchEnvironment environment symbol)
+  (if (equal? (car environment) symbol)
+      (car (cdr (cdr environment)))
+      (if (linSearch (car environment) symbol)
+          (linSearchEnvironment (car environment) symbol)
+          (linSearchEnvironment (cdr environment) symbol))))
 
 
 
@@ -177,6 +191,8 @@
 (define ex `(if (< ((lambda (x) (* x x)) 5) ((lambda (x) (* x (* x x))) 4)) (quote 4) (quote 9)))
 
 (define letExpr `(let ((x 3) (y 4)) (let ((x y)) (+ x y))))
+
+(define letexpr2 `(let ((y 5)) (let ((f (lambda (x) (* x y)))) (let ((y 3)) (f y)))))
 
 (define f1
   '(let ((inc
@@ -232,3 +248,4 @@
   ) ;should be (2 3 4 5)
 
 (trace startEvalList)
+(trace linSearchEnvironment)
