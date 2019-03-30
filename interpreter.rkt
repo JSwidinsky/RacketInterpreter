@@ -56,26 +56,17 @@
 
 ;function that evaluates a given relational expression, and returns true or false depending on its value
 ;Expr -- The relational expression to evaluate
-;environment -- our current environment(list (linSearchVal `((inc (lambda (x) (+ x '1)))) (car '(inc '5))) `(quote 5))
+;environment -- our current environment
 (define (relationalExpr Expr environment)
-  (if (linSearch environment (car Expr))
-      (case (linSearchVal environment (car Expr))
-        (`equal? (equal? (car (cdr Expr)) (car (cdr (cdr Expr)))))
-        (`= (= (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`<= (<= (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`< (< (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`>= (>= (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`> (> (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        )
-      (case (car Expr)
-        (`equal? (equal? (car (cdr Expr)) (car (cdr (cdr Expr)))))
-        (`= (= (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`<= (<= (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`< (< (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`>= (>= (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`> (> (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        )
-      ))
+  (case (car Expr)
+    (`equal? (equal? (car (cdr Expr)) (car (cdr (cdr Expr)))))
+    (`= (= (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
+    (`<= (<= (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
+    (`< (< (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
+    (`>= (>= (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
+    (`> (> (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
+    ))
+
 
 ;this might not work yet...
 (define (listOperation Expr environment)
@@ -98,7 +89,7 @@
 ;expr -- our lambda expression
 ;environment -- our current environment; note that this is modified when we call startEvalList, as we append our new environment to the front of the list
 (define (lambdaEval expr environment)
-  (startEvalList (car (cdr (cdr (car expr)))) (cons (modifyEnvironment (car (cdr (car expr))) (cdr expr) environment) environment)))
+  (startEvalList (car (cdr (cdr (car expr)))) (list (modifyEnvironment (car (cdr (car expr))) (cdr expr) environment) environment)))
 
 (define (letEval expr environment)
   (startEvalList (car (cdr (cdr expr))) (cons (modifyLetEnvironment (car (cdr expr)) environment) environment))) ;(cons (modifyLetEnvironment (car (cdr expr)) environment) environment)))
@@ -251,3 +242,4 @@
          (f y)))))
 
 (trace startEvalList)
+(trace modifyEnvironment)
