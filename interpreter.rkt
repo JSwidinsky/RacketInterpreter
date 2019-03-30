@@ -16,9 +16,9 @@
       (if (linSearch environment (if (pair? prog) (car prog) prog))
           (if (pair? prog)
               (if (not (empty? (cdr prog)))
-                  (startEvalList (list (linSearchVal environment (car prog)) (startEvalList (car (cdr prog)) environment)) (linSearchEnvironment environment (car prog))) ;(startEvalList (cdr prog) environment)) environment)
-                  (startEvalList (list (linSearchVal environment (car prog))) environment));perform a start eval here in the case where a parameter is defined in terms of another parameter
-              (startEvalList (linSearchVal environment prog) environment))
+                  (startEvalList (append (list (linSearchVal environment (car prog))) (map (lambda (x y) (startEvalList x y)) (cdr prog) (make-list (length (cdr prog)) environment))) (linSearchEnvironment environment (car prog))) ;i literally changed this line and now remove doesn't work
+                  (startEvalList (list (linSearchVal environment (car prog))) (linSearchEnvironment environment (car prog))));perform a start eval here in the case where a parameter is defined in terms of another parameter
+              (startEvalList (linSearchVal environment prog) (linSearchEnvironment environment prog)))
           (if (not (pair? prog))
               prog
               (if (empty? (cdr prog))
@@ -47,20 +47,12 @@
 ;Expr -- The arithmatic expression to be evaluated
 ;environment -- our current environment
 (define (arithmaticExpr Expr environment)
-  (if (linSearch environment (car Expr))
-      (case (linSearchVal environment (car Expr))
-        (`+ (+ (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`- (- (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`* (* (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`/ (/ (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        )
-      (case (car Expr)
-        (`+ (+ (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`- (- (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`* (* (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        (`/ (/ (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-        )
-      ))
+  (case (car Expr)
+    (`+ (+ (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
+    (`- (- (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
+    (`* (* (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
+    (`/ (/ (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
+    ))
 
 ;function that evaluates a given relational expression, and returns true or false depending on its value
 ;Expr -- The relational expression to evaluate
@@ -112,7 +104,7 @@
   (startEvalList (car (cdr (cdr expr))) (cons (modifyLetEnvironment (car (cdr expr)) environment) environment))) ;(cons (modifyLetEnvironment (car (cdr expr)) environment) environment)))
 
 (define (letrecEval expr environment)
-  (startEvalList (car (cdr (cdr expr))) (cons (car (cdr expr)) environment)))
+  (startEvalList (car (cdr (cdr expr))) (cons (modifyLetrecEnvironment (car (cdr expr)) environment) environment)));(cons (car (cdr expr)) environment)))
    
 ;helper function that returns a modified list for an updated environment given parameters of a lambda function and the arguments to that function
 ;params -- our variable names for our new environment
@@ -127,6 +119,11 @@
   (if (= (length params) 1)
       (list (car (car params)) (car (cdr (car params))) environment)
       (list (list (car (car params)) (car (cdr (car params))) environment) (modifyLetEnvironment (cdr params) environment))))
+
+(define (modifyLetrecEnvironment params environment)
+  (if (= (length params) 1)
+      (list (car (car params)) (car (cdr (car params))) (list (car (car params)) (car (cdr (car params))) environment))
+      (list (list (car (car params)) (car (cdr (car params))) (list (car (car params)) (car (cdr (car params))) environment)) (modifyLetEnvironment (cdr params) environment))))
 
 ;determines if the parameter expr is one of the four arithmatic operators
 (define (arithmaticExpr? expr)
@@ -247,5 +244,10 @@
      (+ -))
   ) ;should be (2 3 4 5)
 
+(define nestedLet
+  '(let ((y 10))
+     (let ((f (lambda (x) (+ x y))))
+       (let ((y 100))
+         (f y)))))
+
 (trace startEvalList)
-(trace linSearchEnvironment)
