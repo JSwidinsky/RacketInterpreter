@@ -84,7 +84,7 @@
     (`car (car (startEvalList (car (cdr Expr)) environment)))
     (`cdr (cdr (startEvalList (car (cdr Expr)) environment)))
     (`cons (cons (startEvalList (car (cdr Expr)) environment) (startEvalList (car (cdr (cdr Expr))) environment)))
-    (`pair? (pair? (car (cdr Expr))))
+    (`pair? (pair? (startEvalList (car (cdr Expr)) environment)))
     ))
 
 ;function that evaluates an if expression, and depending on the result of its conditional branches to the appropriate part of the list
@@ -186,52 +186,58 @@
 
 
 
-;put any sample test programs here
-(define sampleProg `(cons 6 (cdr (5 8))))  ;this may not work quite right yet?
-(define s `(car (6)))
-(define st `(if (< 6 (+ 4 1))
-                (equal? (car (4 5)) (cdr (5 4)))
-                (+ (* 6 7) (- (/ 10 5) 1))))
+;SAMPLE PROGRAMS
 
-(define s3 `(if ((lambda (x y) (< x y)) 4 5) ((lambda (a b) (+ a (* b b))) 2 5) (+ 4 5)))
-(define s4 `((lambda (x y z) (if (< x y) (+ x y) (* x y (+ z 7)))) 8 9 0))
-(define s5 `((lambda (x) ((lambda (a) (* a x)) x)) 5))
+;tests for multiply defined names in lambda and let
+(define letExprTest
+  `(let ((y 5))
+     (let ((f (lambda (x) (* x y))))
+       (let ((y 3))
+         (f y)))))
 
-(define lam `((lambda (x y) (+ ((lambda (x y) (* x y)) (+ x y) 5) y)) (+ 3 4) (- 4 5)))
-(define lamb `((lambda (+) (+ 5 6)) *))
-
-(define ex `(if (< ((lambda (x) (* x x)) 5) ((lambda (x) (* x (* x x))) 4)) (quote 4) (quote 9)))
-
-(define letExpr `(let ((x 3) (y 4)) (let ((x y)) (+ x y))))
-
-(define letexpr2 `(let ((y 5)) (let ((f (lambda (x) (* x y)))) (let ((y 3)) (f y)))))
-
-(define f1
-  '(let ((inc
-          (lambda (x) (+ x (quote 1)))))
-     (inc (quote 5)))
-  ) ;should be 6
-
-(define fact
-  '(letrec ((fact
-             (lambda (x)
-               (if (= x 0) (quote 1)
-                   (* x (fact (- x 1)))))))
-     (fact (quote 10)))
-  ) ;should be 3628800
-
-(define fib
-  '(letrec ((fib
-             (lambda (n) (if (<= n 1) 1 (+ (fib (- n 1)) (fib (- n 2)))))))
-     (fib 7))
-  ) ;should be 21
-
-
-(define intersect
-  '(letrec ((intersect (lambda (s t) (if (equal? s (quote ())) (quote ()) (if (member (car s) t) (cons (car s) (intersect (cdr s) t)) (intersect (cdr s) t)))))
-            (member (lambda (x s) (if (equal? s (quote ())) (quote #f) (if (equal? x (car s)) (quote #t) (member x (cdr s)))))))
-     (intersect (quote (a b c d)) (quote (b c d e f))))
-  );should be (b c d)
-
+;finds the summation of i from one to n
 (define sum
-  `(letrec ((summation (lambda (x) (if (<= x 0) 0 (+ x (summation (- x 1))))))) (summation 50)))
+  `(letrec ((summation (lambda (x)
+                         (if (<= x 0)
+                             0
+                             (+ x (summation (- x 1)))))))
+     (summation 50)))
+
+;raises a to the power b
+(define power
+  `(letrec ((pow (lambda (a b)
+                   (if (<= b 0)
+                       (quote 1)
+                       (* a (pow a (- b 1)))))))
+     (pow (quote 2) (quote 20))))
+
+;performs the set difference of two lists
+(define setdifference
+  `(letrec ((setdifference
+             (lambda (a b)
+               (if (equal? a (quote ()))
+                   (quote ())
+                   (if (member (car a) b)
+                       (setdifference (cdr a) b)
+                       (cons (car a) (setdifference (cdr a) b))))))
+            (member
+             (lambda (x s)
+               (if (equal? s (quote ()))
+                   (quote #f)
+                   (if (equal? x (car s))
+                       (quote #t)
+                       (member x (cdr s)))))))
+     (setdifference (quote (a b c d e)) (quote (c d a e f g)))))
+
+(define isodd `(let ([sub1 (lambda (x) (- x 1))]
+                  [not (lambda (x) (if x #f #t))])
+              (letrec ([is-even? (lambda (n)
+                                   (if (= n '0)
+                                       #t
+                                       (is-odd? (sub1 n))))]
+                       [is-odd? (lambda (n)
+                                  (if (not (= n '0))
+                                      (is-even? (sub1 n))
+                                      '#f
+                                      ))])
+                (is-odd? 11))))
